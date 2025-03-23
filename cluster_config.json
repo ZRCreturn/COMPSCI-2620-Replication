@@ -1,0 +1,27 @@
+{
+    "cluster": "chat-cluster-1",
+    "nodes": [
+      {
+        "name": "node1",
+        "desc": "main-node",
+        "tcp": {"host": "127.0.0.1", "port": 5000},
+        "grpc": {"port": 50051},
+        "tags": ["primary"]
+      },
+      {
+        "name": "node2",
+        "desc": "node-east",
+        "tcp": {"host": "127.0.0.1", "port": 5000},
+        "grpc": {"port": 50052},
+        "tags": ["east"]
+      },
+      {
+        "name": "node3",
+        "desc": "node-west", 
+        "tcp": {"host": "127.0.0.1", "port": 5000},
+        "grpc": {"port": 50053},
+        "tags": ["west"]
+      }
+    ]
+  }
+  
