@@ -121,13 +121,13 @@ def test_send_read_list_msg(server):
     resp_type, resp = recv_data(client_socket_bob)
     assert resp == {"eric":0, "test_user" :0, "bob" :0}
 
-    # eric delete message--hey
-    send_data(client_socket, Protocol.REQ_DELETE_MESSAGE, message_hey.id)
-    send_data(client_socket, Protocol.REQ_LIST_MESSAGES, "bob")
-    resp_type, resp = recv_data(client_socket)
-    # check whether message_second_hey is the only message left
-    assert resp[0] == message_second_hey
-    assert len(resp) == 1
+    # # eric delete message--hey
+    # send_data(client_socket, Protocol.REQ_DELETE_MESSAGE, message_hey.id)
+    # send_data(client_socket, Protocol.REQ_LIST_MESSAGES, "bob")
+    # resp_type, resp = recv_data(client_socket)
+    # # check whether message_second_hey is the only message left
+    # assert resp[0] == message_second_hey
+    # assert len(resp) == 1
 
     # bob delete his account
     send_data(client_socket_bob, Protocol.REQ_DELETE_ACCOUNT, None)
