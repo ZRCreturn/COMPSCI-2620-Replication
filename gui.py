@@ -127,6 +127,8 @@ class ChatClientApp:
 
         self.current_screen = f"chat_{username}"
 
+        send_data(self.client_socket, Protocol.REQ_READ_MSG, username)
+
         # Request the list of messages for the selected user
         send_data(self.client_socket, Protocol.REQ_LIST_MESSAGES, username)
         resp_type, resp = recv_data(self.client_socket)

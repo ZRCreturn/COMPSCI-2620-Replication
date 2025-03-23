@@ -60,6 +60,8 @@ def read_messages(sender, recipient):
         for msg_id in message_ids:
             if msg_id in message_store:
                 message_store[msg_id].status = "read"
+        
+        save_to_file(message_ids, 'test.json', 'read')
 
 def list_messages(username, friend):
     ret = []

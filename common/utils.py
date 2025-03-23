@@ -101,7 +101,7 @@ def save_to_file(data, filename, mode='overwrite'):
         2. Single Chatmsg object
         3. List of message IDs (for batch operations)
     :param filename: Target storage filename
-    :param mode: Storage mode - overwrite | append | update
+    :param mode: Storage mode - overwrite | append | read
     """
     def _write_entries(f, entries):
         """Helper function to write JSON entries"""
@@ -111,7 +111,7 @@ def save_to_file(data, filename, mode='overwrite'):
     # Mode preprocessing
     if mode == 'overwrite':
         file_mode = 'w'
-    elif mode in ('append', 'delete'):
+    elif mode in ('append', 'delete', 'read'):
         file_mode = 'a' 
     else:
         raise ValueError(f"Invalid mode: {mode}")
@@ -122,7 +122,10 @@ def save_to_file(data, filename, mode='overwrite'):
     elif isinstance(data, Chatmsg):  # Single message
         entries = [data.to_dict()]
     elif isinstance(data, list):  # Batch operation
-        entries = [{"operation": "delete", "ids": data}]
+        if mode == 'delete':
+            entries = [{"operation": "delete", "ids": data}]
+        elif mode == 'read':
+            entries = [{"operation": "read", "ids": data}]
     else:
         raise TypeError("Unsupported data type")
 
@@ -148,6 +151,9 @@ def load_from_file(message_store, messages, filename):
                     if record["operation"] == "delete":
                         for msg_id in record["ids"]:
                             message_store.pop(msg_id, None)
+                    if record["operation"] == "read":
+                        for msg_id in record["ids"]:
+                            message_store[msg_id].status = 'read'
                     continue
                 
                 msg = Chatmsg.from_dict(record)
