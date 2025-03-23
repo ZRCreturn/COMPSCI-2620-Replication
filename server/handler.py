@@ -1,8 +1,9 @@
 from collections import deque, defaultdict
 import threading
-from common.utils import recv_data, send_data, check_pwd, hash_pwd
+from common.utils import recv_data, send_data, check_pwd, hash_pwd, save_to_file
 from common.protocol import Protocol
 from common.message import Chatmsg
+
 
 # dict mapping client addr to username
 connected_clients = {}
@@ -39,6 +40,8 @@ def send_message(sender, recipient, content):
 
         messages[recipient][sender].append(msg.id)
         
+        save_to_file(msg, 'test.json', 'append')
+
         if recipient in connected_clients.values():  # if recipient is online
             print(f"✅ Message delivered to {recipient}")
             msg.status = 'read'
@@ -51,9 +54,9 @@ def read_messages(sender, recipient):
         if recipient not in messages or sender not in messages[recipient]:
             print(f"🚫 No messages from {sender} to {recipient}.")
             return
-
+        
         message_ids = list(messages[recipient][sender])
-
+        print(f"{recipient} read messages from {sender}.")
         for msg_id in message_ids:
             if msg_id in message_store:
                 message_store[msg_id].status = "read"
@@ -92,6 +95,8 @@ def delete_message(username, msg_id):
             del message_store[msg_id]
 
             messages[recipient][username].remove(msg_id)
+
+            save_to_file([msg_id], 'test.json', 'delete')
             print(f"🗑️ Deleted message {msg_id} from {username} to {recipient}")
 
 def delete_account(username):
@@ -110,9 +115,9 @@ def delete_account(username):
                 for msg_id in messages[recipient][username]: 
                     if msg_id in message_store:
                         del message_store[msg_id]
-                del messages[recipient][username]  # 删除 user 作为 sender 的消息
+                del messages[recipient][username]  # 
 
-                if not messages[recipient]:  # 如果 recipient 的消息都删光了，删除 recipient 记录
+                if not messages[recipient]:  # 
                     del messages[recipient]
 
         print(f"❌ {username} has been deleted.")
@@ -193,6 +198,8 @@ def client_thread_entry(client_socket, address):
     """
     entry for each thread listening to a client
     """
+    # Determine whether it is a client
+    
     handle_new_connection(address)
 
     try:

@@ -1,3 +1,4 @@
+from collections import defaultdict, deque
 import json
 import struct
 import bcrypt
@@ -91,3 +92,71 @@ def recv_data_json(sock):
         return None, None  
 
     return msg_type, obj
+
+def save_to_file(data, filename, mode='overwrite'):
+    """
+    Universal storage function with multiple modes
+    :param data: Accepts three data formats:
+        1. Full dataset (dictionary format)
+        2. Single Chatmsg object
+        3. List of message IDs (for batch operations)
+    :param filename: Target storage filename
+    :param mode: Storage mode - overwrite | append | update
+    """
+    def _write_entries(f, entries):
+        """Helper function to write JSON entries"""
+        for entry in entries:
+            f.write(json.dumps(entry, ensure_ascii=False) + '\n')
+
+    # Mode preprocessing
+    if mode == 'overwrite':
+        file_mode = 'w'
+    elif mode in ('append', 'delete'):
+        file_mode = 'a' 
+    else:
+        raise ValueError(f"Invalid mode: {mode}")
+
+    # Data standardization
+    if isinstance(data, dict):  # Full dataset
+        entries = [v.to_dict() for v in data.values()]
+    elif isinstance(data, Chatmsg):  # Single message
+        entries = [data.to_dict()]
+    elif isinstance(data, list):  # Batch operation
+        entries = [{"operation": "delete", "ids": data}]
+    else:
+        raise TypeError("Unsupported data type")
+
+    # Execute storage operation
+    with open(filename, file_mode) as f:
+        _write_entries(f, entries)
+
+
+def load_from_file(filename):
+    """
+    Load chat data from file and populate both data structures
+    :param filename: JSON file path to load
+    :param message_store: Dict to store messages {msg_id: Chatmsg}
+    :param messages: Nested defaultdict for message relationships {recipient: {sender: deque(msg_ids)}}
+    """
+    # Temporary storage for atomic loading
+def load_from_file(message_store, messages, filename):
+    try:
+        with open(filename, 'r') as f:
+            for line in f:
+                record = json.loads(line)
+                if "operation" in record:
+                    if record["operation"] == "delete":
+                        for msg_id in record["ids"]:
+                            message_store.pop(msg_id, None)
+                    continue
+                
+                msg = Chatmsg.from_dict(record)
+                message_store[msg.id] = msg
+            
+            for msg in message_store.values():
+                messages[msg.recipient][msg.sender].append(msg.id)
+                
+    except FileNotFoundError:
+        pass
+        
+    return message_store, messages
