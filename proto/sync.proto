@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+service DataSync {
+    rpc FullSync(DataPackage) returns (SyncResponse);
+    rpc IncrementalSync(DataPackage) returns (SyncResponse);
+    rpc GetFullData(Empty) returns (DataPackage);
+}
+
+message DataPackage {
+    repeated MessageData messages = 1;
+    repeated string deleted_ids = 2;
+    repeated string read_ids = 3;
+}
+
+message MessageData {
+    string id = 1;
+    string sender = 2;
+    string recipient = 3;
+    string content = 4;
+    string status = 5;
+    double timestamp = 6;
+}
+
+message SyncResponse {
+    bool success = 1;
+    string error_message = 2;
+}
+
+message Empty {}
