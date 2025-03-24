@@ -14,6 +14,7 @@ user_accounts = {}
 # global message store 
 message_store = {}  # {msg_id: Message}
 messages = defaultdict(lambda: defaultdict(deque))  # {sender: {recipient: deque([msg_id1, msg_id2, ...])}}
+node_name = ['']
 
 lock = threading.Lock()
 
@@ -40,7 +41,7 @@ def send_message(sender, recipient, content):
 
         messages[recipient][sender].append(msg.id)
         
-        save_to_file(msg, 'test.json', 'append')
+        save_to_file(msg, f'{node_name[0]}.json', 'append')
 
         if recipient in connected_clients.values():  # if recipient is online
             print(f"✅ Message delivered to {recipient}")
@@ -61,7 +62,7 @@ def read_messages(sender, recipient):
             if msg_id in message_store:
                 message_store[msg_id].status = "read"
         
-        save_to_file(message_ids, 'test.json', 'read')
+        save_to_file(message_ids, f'{node_name[0]}.json', 'read')
 
 def list_messages(username, friend):
     ret = []
@@ -98,7 +99,7 @@ def delete_message(username, msg_id):
 
             messages[recipient][username].remove(msg_id)
 
-            save_to_file([msg_id], 'test.json', 'delete')
+            save_to_file([msg_id], f'{node_name[0]}.json', 'delete')
             print(f"🗑️ Deleted message {msg_id} from {username} to {recipient}")
 
 def delete_account(username):

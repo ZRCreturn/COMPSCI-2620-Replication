@@ -164,5 +164,3 @@ def load_from_file(message_store, messages, filename):
                 
     except FileNotFoundError:
         pass
-        
-    return message_store, messages
