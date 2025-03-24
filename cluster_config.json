@@ -11,14 +11,14 @@
       {
         "name": "node2",
         "desc": "node-east",
-        "tcp": {"host": "127.0.0.1", "port": 5000},
+        "tcp": {"host": "127.0.0.1", "port": 5001},
         "grpc": {"port": 50052},
         "tags": ["east"]
       },
       {
         "name": "node3",
         "desc": "node-west", 
-        "tcp": {"host": "127.0.0.1", "port": 5000},
+        "tcp": {"host": "127.0.0.1", "port": 5002},
         "grpc": {"port": 50053},
         "tags": ["west"]
       }
