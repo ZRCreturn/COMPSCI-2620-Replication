@@ -117,11 +117,11 @@ class ChatClientApp:
         self.user_buttons = {}
         for user, unread_count in self.users.items():
             button = tk.Button(self.root, text=f"{user} ({unread_count} unread)", 
-                               command=lambda user=user: self.show_message_list(user))
+                               command=lambda user=user: self.show_message_list_and_read(user))
             button.pack()
             self.user_buttons[user] = button
-
-    def show_message_list(self, username):
+            
+    def show_message_list_and_read(self, username):
         # Clear the screen
         self.clear_screen()
 
@@ -135,6 +135,19 @@ class ChatClientApp:
 
         if resp_type == Protocol.RESP_LIST_MESSAGES:
             self.display_messages(resp, username)
+            
+    def show_message_list(self, username):
+        # Clear the screen
+        self.clear_screen()
+
+        self.current_screen = f"chat_{username}"
+        # Request the list of messages for the selected user
+        send_data(self.client_socket, Protocol.REQ_LIST_MESSAGES, username)
+        resp_type, resp = recv_data(self.client_socket)
+
+        if resp_type == Protocol.RESP_LIST_MESSAGES:
+            self.display_messages(resp, username)
+
 
     def on_message_click(self, event, messages, username):
         try:
