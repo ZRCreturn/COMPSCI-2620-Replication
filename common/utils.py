@@ -101,7 +101,7 @@ def save_to_file(data, filename, mode='overwrite'):
         2. Single Chatmsg object
         3. List of message IDs (for batch operations)
     :param filename: Target storage filename
-    :param mode: Storage mode - overwrite | append | read
+    :param mode: Storage mode - overwrite | append | delete| read
     """
     def _write_entries(f, entries):
         """Helper function to write JSON entries"""
@@ -164,3 +164,20 @@ def load_from_file(message_store, messages, filename):
                 
     except FileNotFoundError:
         pass
+
+def save_user_accounts_to_json(user_accounts, filename='user_accounts.json'):
+    with open(filename, 'w', encoding='utf-8') as f:
+        json.dump(user_accounts, f, ensure_ascii=False, indent=4)
+
+def load_user_accounts_from_json(user_accounts, filename='user_accounts.json'):
+    try:
+        with open(filename, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        user_accounts.clear()
+        user_accounts.update(data)
+    except FileNotFoundError:
+        print(f"File {filename} not found. Keeping dictionary empty.")
+        user_accounts.clear()
+    except json.JSONDecodeError:
+        print(f"File {filename} is not valid JSON. Keeping dictionary empty.")
+        user_accounts.clear()
