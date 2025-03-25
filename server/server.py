@@ -2,8 +2,8 @@ import socket
 import sys
 import threading
 import time
-from server.handler import client_thread_entry, message_store, messages, node_name
-from common.utils import load_from_file, save_to_file
+from server.handler import client_thread_entry, message_store, messages, node_name, user_accounts
+from common.utils import load_from_file, save_to_file, load_user_accounts_from_json
 import signal
 from server.config_loader import ServerConfig, parse_cli_args
 from server.grpc_sync import run_grpc_server
@@ -54,7 +54,8 @@ def start_server():
         print(f"🟢 Server listening on {tcp_host}:{tcp_port}")
         while True:
             client_socket, addr = server_socket.accept()
-            t = threading.Thread(target=client_thread_entry, args=(client_socket, addr))
+            load_user_accounts_from_json(user_accounts)
+            t = threading.Thread(target=client_thread_entry, args=(client_socket, addr, sync_client))
             t.start()
 
     except Exception as e:
