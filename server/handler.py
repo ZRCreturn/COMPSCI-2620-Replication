@@ -198,6 +198,11 @@ def handle_request(sock, address, msg_type, parsed_obj, sync_client):
             delete_account(username)
             return
 
+        case Protocol.REQ_PING:
+            username = parsed_obj
+            connected_clients[address] = username
+            return
+        
         case _:
             pass
 

@@ -12,6 +12,7 @@ class Protocol:
     REQ_LIST_USERS = 6
     REQ_DELETE_MESSAGE = 7
     REQ_DELETE_ACCOUNT = 8
+    REQ_PING = 9
 
     # response
     RESP_USER_EXISTING = 101
