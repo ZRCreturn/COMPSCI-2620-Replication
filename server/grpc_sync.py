@@ -22,16 +22,21 @@ class SyncService(DataSyncServicer):
         return SyncResponse(success=True)
 
     def IncrementalSync(self, request, context):
-        for msg_data in request.messages:
-            self._add_message(msg_data)
+        if len(request.messages) != 0:
+            for msg_data in request.messages:
+                msg = self._add_message(msg_data)
+                save_to_file(msg, f'{node_name[0]}.json', mode='append')
+            
+        if len(request.deleted_ids) != 0:
+            for id in request.deleted_ids:
+                self._remove_message(id)
+            save_to_file(list(request.deleted_ids), f'{node_name[0]}.json', mode='delete')
 
-        for msg_id in request.deleted_ids:
-            self._remove_message(msg_id)
+        if len(request.read_ids) != 0:
+            for id in request.read_ids:
+                self._read_message(id)
+            save_to_file(list(request.read_ids), f'{node_name[0]}.json', mode='read')
         
-        for msg_id in request.read_ids:
-            self._read_message(msg_id)
-        
-        save_to_file(message_store, f'{node_name[0]}.json', mode='append')
         return SyncResponse(success=True)
     
     def GetFullData(self, request, context):
@@ -50,7 +55,8 @@ class SyncService(DataSyncServicer):
         )
         message_store[msg.id] = msg
         messages[msg.recipient][msg.sender].append(msg.id)
-
+        return msg
+    
     def _remove_message(self, msg_id):
         if msg_id in message_store:
             msg = message_store.pop(msg_id)
