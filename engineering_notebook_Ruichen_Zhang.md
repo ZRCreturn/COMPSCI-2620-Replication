@@ -220,3 +220,185 @@ This approach ensures that Python treats the script as a module, searching for i
 To ensure thread safety when modifying global variables related to `send`, `read`, and `delete` message operations, I added locks. In Python, thanks to the **context manager**, using locks becomes very **Pythonic**—simply wrapping critical sections with `with lock` ensures proper locking and unlocking.
 
 This approach makes concurrency management much more convenient and readable.
+
+
+## March 23: Adding Fault Tolerance via Persistence
+
+To make the chat application fault-tolerant, I focused on **introducing persistent storage** to back up in-memory data structures. This step is crucial because all data (such as messages and user mappings) were previously stored in memory, and any server crash would lead to a total loss.
+
+### **Why Not Use a Database?**
+
+One intuitive solution to persistence is integrating a relational or NoSQL database. However, I decided **not to use a full-fledged database system** for several reasons:
+- This project is a **lightweight demo**, and introducing a database feels unnecessarily **heavy**.
+- A database would **require managing multiple running instances**, which would complicate the setup and **reduce the portability** of the project.
+- Theoretically, databases have built-in **master-slave replication**, which could handle fault tolerance at the storage level—but that would offload too much of the core fault tolerance logic to the DB layer, which defeats the educational value of implementing it myself.
+
+### **Why Use JSON?**
+
+After evaluating options, I settled on using **JSON-formatted logs** to persist chat data. The reasons are:
+- **Human-readable and lightweight**, suitable for demo and debugging.
+- Python's `json` module makes it easy to implement and maintain.
+
+### **Implementation Highlights**
+
+I implemented a generic storage function, `save_to_file()`, which supports various modes including:
+- `overwrite`: Save the full dataset
+- `append`: Add new messages
+- `delete`: Record deletion operations
+- `read`: Mark messages as read
+
+Here’s a key snippet from the `save_to_file()` function:
+
+```python
+def save_to_file(data, filename, mode='overwrite'):
+    ...
+    if isinstance(data, dict):  # Full dataset
+        entries = [v.to_dict() for v in data.values()]
+    elif isinstance(data, Chatmsg):  # Single message
+        entries = [data.to_dict()]
+    elif isinstance(data, list):  # Batch operations
+        if mode == 'delete':
+            xxx
+        elif mode == 'read':
+            xxx
+    ...
+```
+To reconstruct the in-memory state during startup, I added a complementary function, load_from_file(), which reads logs and restores both message_store and messages.
+
+This way, even if the server crashes, the system can recover the full message history and relationships.
+
+## March 24: Designing Append-Only Incremental Persistence
+
+Yesterday I implemented most of the data Persistence work, today I made a important design decision, which is appending changes incrementally for delete and update operations.
+
+### **Why Append Instead of Overwrite?**
+
+1. **Avoid losing data**:  
+   If the server crashes, previous data is still safe because we never erase it—we only add new lines.
+
+2. **Faster performance**:  
+   Appending a new message takes less time than rewriting the whole file every time.
+
+3. **Easy to understand**:  
+   You can open the file and clearly see the history of all operations—message sends, reads, and deletions.
+
+---
+
+### **How Does It Work?**
+
+In the `save_to_file()` function:
+
+- When a user sends a message, we convert it to JSON and **append** it to the file:
+```json
+{"id": "msg123", "sender": "alice", "recipient": "bob", "content": "...", "status": "unread"}
+```
+
+- When a message is read, we add a special entry:
+```json
+{"operation": "read", "ids": ["msg123"]}
+```
+
+- When a message is deleted:
+```json
+{"operation": "delete", "ids": ["msg123"]}
+```
+
+All changes are stored in order, one per line.
+
+---
+
+### **Loading Data Back**
+
+When the server starts, the `load_from_file()` function reads the file **line by line**. It first stores the original messages, then applies the read and delete operations to build the final state in memory.
+
+This way, even after a crash or shutdown, the chat history and message status can be fully restored.
+
+---
+
+✅ **Next Steps:**
+- Add support for compacting the log file (snapshot + clean-up)
+- Store user accounts in the same way
+
+
+## March 26: Using gRPC for Backend Server Synchronization
+
+Today, I introduced **gRPC** to handle backend synchronization between multiple server instances. This marks a major step forward in building a **distributed and fault-tolerant chat system**.
+
+### **Why Add Server Synchronization?**
+
+To ensure **high availability** and **data consistency**, multiple server instances must stay in sync. For example, if one server goes down, others should still have the latest message state.
+
+### **Why gRPC?**
+
+Originally, all client-server communication was done using a **custom protocol** over **raw TCP sockets**, sending byte streams back and forth. However, trying to use that same protocol for **server-to-server sync** introduces problems:
+
+- **Too much coupling**: We'd mix internal logic (synchronization) with external-facing logic (client requests).
+- **Extra complexity**: We'd have to build a second layer of parsing and routing into the same TCP handler.
+
+By contrast, **gRPC offers a clean separation** of concerns:
+
+- Synchronization is now handled on a separate channel.
+- Protobuf definitions make data structures easy to manage.
+- Built-in streaming and bi-directional communication fit our sync use case well.
+
+---
+
+### **Current Design**
+
+Each server exposes a gRPC service with methods like:
+- `SyncNewMessage`
+- `SyncReadStatus`
+- `SyncDelete`
+
+When one server changes data, it immediately **broadcasts the change to its peers** via gRPC.
+
+This makes the system **modular**, with well-defined boundaries:
+- **TCP channel** for client interaction
+- **gRPC channel** for backend replication
+
+---
+
+✅ **Next Steps:**
+- Finalize protobuf schema definitions and rpc server.
+- Build a test environment with 3 server instances
+- Add retry and conflict resolution logic for sync
+
+
+## March 27: Building a Configuration Loader
+
+Today I completed the **config loader** to manage settings for running multiple chat server nodes in a cluster. This module is responsible for loading and validating `servers.json`, and providing easy access to each node's TCP and gRPC settings.
+
+-
+
+As the system evolves into a **multi-node architecture**, it's important to:
+
+- Avoid hardcoding hostnames, ports, or cluster metadata in the source code
+- Dynamically configure how many servers to launch and how they interact
+- Allow switching environments (e.g., test vs. production) with zero code change
+
+The JSON config file provides a **single source of truth** about the cluster.
+
+
+Instead of manually parsing JSON everywhere, I created a reusable class `ServerConfig` that:
+
+- **Loads and validates** the structure of the config file
+- **Builds a fast lookup map** of nodes by name
+- **Provides helper functions** like:
+  - `get_current_node(name)`
+  - `get_peer_grpc_addrs(exclude)`
+  - `get_peer_nodes(exclude)`
+
+This makes the codebase **cleaner, safer, and more flexible**. If a config field is missing, it fails fast with clear error messages.
+
+---
+
+### **Example Use Case**
+
+Run a node via CLI:
+```bash
+python -m server.main --node node1 --config servers.json
+```
+
+This allows the server to boot up using dynamic config, and also discover its **peer nodes** for gRPC sync.
+
+---
