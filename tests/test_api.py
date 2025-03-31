@@ -44,7 +44,7 @@ def test_save_and_load_overwrite(sample_messages):
         messages = defaultdict(lambda: defaultdict(deque))
 
         # Load back
-        message_store, messages = load_from_file(filename)
+        load_from_file(message_store, messages, filename)
 
         # Assertions
         assert set(message_store.keys()) == set(sample_messages.keys())
@@ -76,7 +76,7 @@ def test_save_append_and_delete(sample_messages):
         # Load back
         message_store = {}
         messages = defaultdict(lambda: defaultdict(deque))
-        message_store, messages = load_from_file(filename)
+        load_from_file(message_store, messages, filename)
 
         # Only m2 should remain
         assert "m1" not in message_store
