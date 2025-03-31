@@ -210,9 +210,9 @@ project_root/
 1. **Start the server**  
 notice: please add -m as prarmeter of running this python script(also use server.server instead of \server\server.py). this ensures that Python treats the script as a module, searching for it correctly within `sys.path` before executing it
    ```
-   python -m server.server # this script for windows
+   python -m  server.server --node=node2 --config=cluster_config.json # this script for windows, param node means the node to be lanuched.
    ```
-   This will start the server listening on `127.0.0.1:5000`.
+   This will start the server listening on the addr configed by cluster_config file.
    If you have a public IP or multiple machines on the same local network, you can modify the IP address in the code to your public IP or local network IP. This way, multiple machines can participate in the chat instead of being limited to the local machine.
 
 
@@ -231,3 +231,44 @@ notice: please add -m as prarmeter of running this python script(also use server
 ## Contributing  
 - **Ruichen Zhang**: Backend implementation, protocol design, and test suite development.  
 - **Kiran Pyles**: Frontend (GUI) implementation.
+
+# -----------------------------------------------------
+# Replication project update 
+## Fault Tolerance & Persistence
+
+To support crash recovery and data durability, the system introduces the following fault-tolerance features:
+
+### ✅ Append-Only Persistent Storage (JSON)
+
+Instead of storing data only in memory, messages and operations are now logged to a **JSON file** using an append-only format.
+
+- Each operation (send, read, delete) is appended as a new line in the log.
+- The file can be replayed during startup to fully rebuild the server state.
+- Designed to be efficient and human-readable.
+
+### ✅ Incremental Logging Design
+
+By appending changes instead of overwriting the whole dataset, we gain:
+
+- **Crash safety**: No data is lost during crashes.
+- **Better performance**: O(1) writes vs full file rewrites.
+- **Traceability**: Easy to debug and inspect logs.
+- Future-ready for **log compaction** support.
+
+### ✅ gRPC-Based Server Synchronization
+
+To allow multiple backend servers to synchronize their state:
+
+- A **gRPC service** was introduced for backend-to-backend communication.
+- Internal state changes (new message, read status, deletion) are **broadcasted** to peer nodes via gRPC.
+- This keeps internal logic (synchronization) **decoupled** from external logic (TCP client communication).
+- Enables support for **horizontal scaling** and **high availability**.
+
+### ✅ Cluster Config Loader
+
+A `servers.json` file defines the cluster layout and server roles.
+
+- Easily configure multiple server instances.
+- Avoids hardcoding ports and IPs.
+- Supports tools like `get_peer_nodes()` to help with sync setup.
+
