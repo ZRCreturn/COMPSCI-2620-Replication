@@ -134,15 +134,15 @@ def save_to_file(data, filename, mode='overwrite'):
         _write_entries(f, entries)
 
 
-def load_from_file(filename):
+
+
+def load_from_file(message_store, messages, filename):
     """
     Load chat data from file and populate both data structures
     :param filename: JSON file path to load
     :param message_store: Dict to store messages {msg_id: Chatmsg}
     :param messages: Nested defaultdict for message relationships {recipient: {sender: deque(msg_ids)}}
     """
-    # Temporary storage for atomic loading
-def load_from_file(message_store, messages, filename):
     try:
         with open(filename, 'r') as f:
             for line in f:
